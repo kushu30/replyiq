@@ -43,6 +43,9 @@ Weighted Overall Score --> output/report.csv (per-email + system average)
 The retrieval stage is evaluated independently of the generation stage — this is
 the key design decision in this system (see "Stage-Wise Evaluation" below).
 
+## Demo
+![Screenshot](<Screenshot 2026-07-07 at 04.54.05.png>)
+
 ## Dataset
 
 `dataset/emails.json` — 20 hand-authored customer email + support reply pairs

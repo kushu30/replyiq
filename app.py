@@ -6,13 +6,13 @@ if "GROQ_API_KEY" in st.secrets:
     os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
 from evaluation.judge import LlmJudgeMetric
-from evaluation.metrics import BertScoreMetric, BleuMetric, RougeLMetric, WeightedEvaluator
+from evaluation.metrics import BleuMetric, RougeLMetric, WeightedEvaluator
 from evaluation.retrieval_evaluator import RetrievalEvaluator
 from generator.generator import ReplyGenerator
 from generator.retriever import EmailRetriever
 
 DATASET_PATH = "dataset/emails.json"
-OFFLINE_METRIC_WEIGHTS = {"bleu": 0.15, "rouge_l": 0.15, "bert_score": 0.70}
+OFFLINE_METRIC_WEIGHTS = {"bleu": 0.5, "rouge_l": 0.5}
 CONFIDENCE_THRESHOLD = 0.15
 
 st.set_page_config(page_title="ReplyIQ", layout="wide")
@@ -23,7 +23,7 @@ def load_pipeline():
     retriever = EmailRetriever(DATASET_PATH)
     generator = ReplyGenerator()
     offline_evaluator = WeightedEvaluator(
-        metrics=[BleuMetric(), RougeLMetric(), BertScoreMetric()],
+        metrics=[BleuMetric(), RougeLMetric()],
         weights=OFFLINE_METRIC_WEIGHTS,
     )
     judge = LlmJudgeMetric()
@@ -88,11 +88,10 @@ if st.button("Generate suggested reply", type="primary") and customer_email.stri
 
     if offline_result:
         st.caption("Offline validation only — requires a historical reference, not available in production.")
-        offline_cols = st.columns(4)
+        offline_cols = st.columns(3)
         offline_cols[0].metric("BLEU", offline_result["components"]["bleu"])
         offline_cols[1].metric("ROUGE-L", offline_result["components"]["rouge_l"])
-        offline_cols[2].metric("BERTScore", offline_result["components"]["bert_score"])
-        offline_cols[3].metric("Offline overall", offline_result["overall_score"])
+        offline_cols[2].metric("Offline overall", offline_result["overall_score"])
 
     with st.expander("Judge reasoning"):
         st.json(primary_result.detail)

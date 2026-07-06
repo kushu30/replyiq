@@ -2,7 +2,6 @@ groq==0.13.0
 scikit-learn==1.5.2
 nltk==3.9.1
 rouge-score==0.1.2
-bert-score==0.3.13
 python-dotenv==1.0.1
 pandas==2.2.3
 streamlit==1.40.1

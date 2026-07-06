@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from evaluation.judge import LlmJudgeMetric
-from evaluation.metrics import BertScoreMetric, BleuMetric, RougeLMetric, WeightedEvaluator
+from evaluation.metrics import BleuMetric, RougeLMetric, WeightedEvaluator
 from evaluation.retrieval_evaluator import RetrievalEvaluator
 from generator.generator import ReplyGenerator
 from generator.retriever import EmailRetriever
@@ -13,7 +13,7 @@ OUTPUT_PATH = "output/report.csv"
 TOP_K_RETRIEVAL = 3
 CONFIDENCE_THRESHOLD = 0.15
 
-OFFLINE_METRIC_WEIGHTS = {"bleu": 0.15, "rouge_l": 0.15, "bert_score": 0.70}
+OFFLINE_METRIC_WEIGHTS = {"bleu": 0.5, "rouge_l": 0.5}
 
 
 def load_test_emails(dataset_path: str) -> list[dict]:
@@ -27,7 +27,7 @@ def run_pipeline(limit: int | None = None) -> None:
     judge = LlmJudgeMetric()
     retrieval_evaluator = RetrievalEvaluator()
     offline_evaluator = WeightedEvaluator(
-        metrics=[BleuMetric(), RougeLMetric(), BertScoreMetric()],
+        metrics=[BleuMetric(), RougeLMetric()],
         weights=OFFLINE_METRIC_WEIGHTS,
     )
 
@@ -80,7 +80,6 @@ def run_pipeline(limit: int | None = None) -> None:
                 "judge_reasoning": primary_result.detail,
                 "offline_bleu": offline_result["components"]["bleu"],
                 "offline_rouge_l": offline_result["components"]["rouge_l"],
-                "offline_bert_score": offline_result["components"]["bert_score"],
                 "offline_validation_score": offline_result["overall_score"],
             }
         )

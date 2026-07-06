@@ -33,7 +33,9 @@ Use the following historical examples as style and tone references. Do not copy 
 New customer email:
 {customer_email}
 
-Write a professional, concise, and empathetic support reply. Only output the reply text, with no preamble, no subject line, and no explanation."""
+Write a professional, concise, and empathetic support reply. Only output the reply text, with no preamble, no subject line, and no explanation.
+
+Do not invent specific facts that are not stated in the customer's email or the examples above — no fabricated causes (e.g. claiming a package was "misrouted" or "held at a facility" if the customer never said that and no example confirms it), no invented order details, no specific dates or timelines you cannot actually confirm. If the cause or status is unknown, say you're looking into it rather than asserting a specific explanation."""
 
     @retry_with_backoff()
     def generate_reply(self, customer_email: str, similar_examples: list[dict]) -> str:

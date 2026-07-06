@@ -113,9 +113,9 @@ a held-out human-rating set to formally correlate judge scores against human
 judgment — that's the single most important next step to trust this system at
 scale (see Future Improvements).
 
-**Known limitation:** the LLM judge is Gemini judging Gemini's own output family.
-A more rigorous setup would use a different model (or human raters) as the judge
-to avoid shared blind spots.
+**Known limitations:**
+- The LLM judge is Gemini judging Gemini's own output family. A more rigorous setup would use a different model (or human raters) as the judge to avoid shared blind spots.
+- The first-pass generation prompt hallucinated a specific unconfirmed cause (e.g., claiming a package was "misrouted"), which was caught by manual inspection. This highlights that automated metrics don't replace spot-checking output, and prompted the addition of a `groundedness` check to the judge.
 
 ## Reporting
 

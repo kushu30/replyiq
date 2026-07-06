@@ -10,7 +10,7 @@ from generator.rate_limit import retry_with_backoff
 
 load_dotenv()
 
-JUDGE_CRITERIA = ["correctness", "helpfulness", "completeness", "professionalism", "tone"]
+JUDGE_CRITERIA = ["correctness", "helpfulness", "completeness", "professionalism", "tone", "groundedness"]
 
 
 class LlmJudgeMetric(EvaluationMetric):
@@ -39,9 +39,10 @@ Rate the AI-generated reply from 0 to 10 on each of these dimensions:
 - completeness: does it cover everything the customer asked about
 - professionalism: is the language appropriate for customer support
 - tone: is it empathetic and suitably toned for the situation
+- groundedness: does it avoid hallucinating specific facts not present in the customer email or instructions
 
 Respond with ONLY valid JSON in this exact format, no markdown, no explanation:
-{{"correctness": <int>, "helpfulness": <int>, "completeness": <int>, "professionalism": <int>, "tone": <int>, "reasoning": "<one sentence summary>"}}"""
+{{"correctness": <int>, "helpfulness": <int>, "completeness": <int>, "professionalism": <int>, "tone": <int>, "groundedness": <int>, "reasoning": "<one sentence summary>"}}"""
 
     def _parse_response(self, raw_text: str) -> dict:
         cleaned = re.sub(r"```json|```", "", raw_text).strip()

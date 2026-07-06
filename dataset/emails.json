@@ -1,0 +1,122 @@
+[
+  {
+    "id": "1",
+    "domain": "refunds",
+    "customer_email": "Hi, I ordered a pair of shoes two weeks ago but they arrived damaged. I want a full refund, not a replacement. Order number is #48213.",
+    "support_reply": "Hi, I'm sorry to hear your order arrived damaged. I've processed a full refund for order #48213, and you should see the amount back in your account within 5-7 business days. You're welcome to donate or dispose of the damaged item; no need to return it. Thank you for your patience."
+  },
+  {
+    "id": "2",
+    "domain": "refunds",
+    "customer_email": "I returned my item three weeks ago and still haven't received my refund. This is really frustrating.",
+    "support_reply": "I completely understand the frustration, and I apologize for the delay. I've checked our system and confirmed your return was received on the 12th. I've escalated your refund for immediate processing, and you should see it credited within 2-3 business days. I'll also send a confirmation email once it's completed."
+  },
+  {
+    "id": "3",
+    "domain": "billing",
+    "customer_email": "I was charged twice for my subscription this month. Can you please look into this and refund the duplicate charge?",
+    "support_reply": "Thank you for flagging this. I checked your billing history and can confirm a duplicate charge was applied on the 3rd due to a processing error on our end. I've refunded the duplicate amount, which will reflect in your account within 3-5 business days. I apologize for the inconvenience."
+  },
+  {
+    "id": "4",
+    "domain": "billing",
+    "customer_email": "My invoice this month is higher than usual. Can you explain the charges?",
+    "support_reply": "Happy to clarify. Your invoice this month includes a prorated charge for upgrading to the Pro plan on the 15th, in addition to your regular monthly fee. I've attached a detailed breakdown to this email. Let me know if you'd like me to walk through any specific line item."
+  },
+  {
+    "id": "5",
+    "domain": "login_issues",
+    "customer_email": "I can't log into my account. It keeps saying invalid credentials even though I'm sure my password is correct.",
+    "support_reply": "Sorry for the trouble logging in. This can sometimes happen if the account was flagged after multiple failed attempts. I've reset the lockout on your account, please try logging in again. If the issue persists, try resetting your password using the 'Forgot Password' link, and let me know if you still run into problems."
+  },
+  {
+    "id": "6",
+    "domain": "login_issues",
+    "customer_email": "Every time I try to log in on my phone, the app crashes. It works fine on desktop though.",
+    "support_reply": "Thanks for letting us know. This sounds like a known issue with the mobile app on certain OS versions. Could you confirm your phone model and app version so I can check if a fix is available? In the meantime, using the desktop or mobile web version should work as a temporary workaround."
+  },
+  {
+    "id": "7",
+    "domain": "password_reset",
+    "customer_email": "I requested a password reset link an hour ago but never received the email. Can you resend it?",
+    "support_reply": "I'm sorry for the delay. I've triggered a new password reset email to your registered address, please check your inbox and spam folder over the next few minutes. If it still doesn't arrive, let me know and I can reset it manually from our end."
+  },
+  {
+    "id": "8",
+    "domain": "password_reset",
+    "customer_email": "The password reset link you sent me says it's expired, but I clicked it right away.",
+    "support_reply": "Apologies for the inconvenience. Reset links expire after 15 minutes for security reasons, so it may have timed out before you opened it. I've sent a fresh link to your email, this one will be valid for the next 30 minutes. Please let me know once you're able to reset it successfully."
+  },
+  {
+    "id": "9",
+    "domain": "subscription_cancellation",
+    "customer_email": "I want to cancel my subscription immediately. Please confirm once it's done.",
+    "support_reply": "I've gone ahead and cancelled your subscription effective immediately, and you won't be billed going forward. You'll still have access to your account until the end of the current billing cycle on the 28th. Let me know if there's anything that led to this decision, we'd love the chance to improve."
+  },
+  {
+    "id": "10",
+    "domain": "subscription_cancellation",
+    "customer_email": "How do I cancel my plan? I don't see the option anywhere in settings.",
+    "support_reply": "Thanks for reaching out. You can cancel anytime under Settings > Billing > Manage Subscription > Cancel Plan. If that option isn't visible for you, it's likely because you're on an annual plan managed through our sales team, in which case I'm happy to process the cancellation for you directly, just confirm and I'll take care of it."
+  },
+  {
+    "id": "11",
+    "domain": "shipping_delays",
+    "customer_email": "My package was supposed to arrive 4 days ago and tracking hasn't updated since. Where is it?",
+    "support_reply": "I'm sorry for the delay and the lack of updates. I checked with our shipping partner and your package is currently held at a regional facility due to high volume, it's expected to move within 24-48 hours. I'll keep monitoring this and reach out proactively if there's any further delay."
+  },
+  {
+    "id": "12",
+    "domain": "shipping_delays",
+    "customer_email": "This is the second time my order has been delayed. I'm considering cancelling.",
+    "support_reply": "I completely understand your frustration, and I'm sorry this has happened again. I've escalated your order for priority handling and confirmed it will ship out today with expedited delivery at no extra cost. If you'd still like to cancel after this, I'll make sure it's a smooth, no-hassle process."
+  },
+  {
+    "id": "13",
+    "domain": "account_deletion",
+    "customer_email": "Please delete my account and all my data permanently. I no longer want to use your service.",
+    "support_reply": "I've submitted a request to permanently delete your account and associated data, this process typically completes within 7 business days in line with our data retention policy. You'll receive a confirmation email once it's done. If you change your mind before then, just reply here and we can cancel the request."
+  },
+  {
+    "id": "14",
+    "domain": "account_deletion",
+    "customer_email": "I deleted my account last month but I'm still getting marketing emails from you.",
+    "support_reply": "I apologize for this, that shouldn't be happening after account deletion. I've manually removed your email from our marketing list and confirmed your account data was deleted as requested. You should stop receiving these emails within 24-48 hours. Thank you for pointing this out."
+  },
+  {
+    "id": "15",
+    "domain": "technical_bugs",
+    "customer_email": "The export to PDF feature is broken, it just shows a blank page every time I try.",
+    "support_reply": "Thanks for reporting this, I was able to reproduce the issue on our end. It appears to be affecting exports with embedded images specifically. Our engineering team is already looking into it, and I'll update you as soon as a fix is deployed. As a workaround, exporting to CSV should work normally in the meantime."
+  },
+  {
+    "id": "16",
+    "domain": "technical_bugs",
+    "customer_email": "I'm getting a 500 error whenever I try to upload a file larger than 10MB.",
+    "support_reply": "Thank you for the detailed report. This is a known limitation, our current upload cap is 10MB, and files above that threshold return a server error instead of a clear message, which we agree isn't ideal. I've logged this for our engineering team to add proper validation. For now, please compress the file or split it before uploading."
+  },
+  {
+    "id": "17",
+    "domain": "feature_requests",
+    "customer_email": "It would be great if you could add dark mode to the dashboard. Any plans for this?",
+    "support_reply": "Thanks for the suggestion, dark mode comes up often and it's on our product team's radar. I've added your vote to the existing request to help prioritize it. I don't have a confirmed timeline yet, but I'll make sure you're notified if it ships."
+  },
+  {
+    "id": "18",
+    "domain": "feature_requests",
+    "customer_email": "Can you add an option to export reports directly to Google Sheets instead of just CSV?",
+    "support_reply": "That's a great idea, thank you for sharing it. I've passed this along to our product team as a feature request. We don't have direct Google Sheets export currently, but CSV files can be imported into Sheets in just a couple of clicks in the meantime. I'll keep you posted on any updates."
+  },
+  {
+    "id": "19",
+    "domain": "payment_failures",
+    "customer_email": "My card was declined during checkout but I have sufficient funds. What's going on?",
+    "support_reply": "Sorry for the trouble. Declines can happen due to your bank's fraud detection flagging the transaction, even with sufficient funds available. I'd recommend contacting your bank to authorize the charge, or trying an alternate payment method. Let me know if the issue continues and I can look into it further."
+  },
+  {
+    "id": "20",
+    "domain": "payment_failures",
+    "customer_email": "I tried paying with PayPal three times and it keeps failing at the last step.",
+    "support_reply": "Thanks for your patience. We're aware of an intermittent issue affecting PayPal checkouts and our team is actively investigating. In the meantime, could you try using a credit or debit card instead? I'll follow up personally once the PayPal issue is resolved so you can switch back if you prefer."
+  }
+]

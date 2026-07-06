@@ -122,21 +122,53 @@ email had strong retrieval (8/10 relevance) and the highest overall score in the
 batch. This is exactly the diagnostic capability a single end-to-end score
 cannot provide.
 
-### Reply-level metrics
+### Primary evaluation is reference-free — this is a deliberate architectural choice
 
-| Metric | Captures | Weight |
-|---|---|---|
-| BLEU | n-gram precision vs. reference reply | 0.15 |
-| ROUGE-L | longest common subsequence, phrasing structure | 0.15 |
-| BERTScore | semantic similarity even with different wording | 0.30 |
-| LLM Judge | 6-dimension rubric (below) | 0.40 |
+In production, reference replies do not exist. That's literally why the system
+is generating a reply in the first place — there is no historical "correct
+answer" for a brand-new incoming email. Therefore our primary evaluation is
+reference-free: the LLM judge scores the generated reply directly against the
+customer email and general support standards, with no comparison to a reference.
 
-**Why these weights:** lexical metrics are the weakest signal here — a
-correctly-paraphrased reply can score low on them — so they're weighted lowest
-but kept as a sanity floor. BERTScore tolerates paraphrasing while still
-penalizing semantically wrong replies. The LLM Judge is weighted highest because
-it's the only signal actually reading the reply for whether it resolves the
-issue — the thing that actually matters.
+BLEU, ROUGE-L, and BERTScore are offline validation tools only. They require a
+reference reply, which is only available here because this dataset happens to
+include historical ground truth. They are reported as `offline_*` columns for
+development-time sanity checking — confirming the generator stays reasonably
+close to how the team has actually replied before — but they are never part of
+the headline `primary_score`, and could not be computed at all on a genuinely
+new email in production.
+
+### Judge calibration — proving discrimination, not just claiming it
+
+An LLM-as-judge is only trustworthy if it can be shown to actually discriminate
+between good, bad, and misleading replies — otherwise it's indistinguishable
+from a judge that just returns a high number regardless of input.
+`evaluation/calibration_check.py` runs the judge, reference-free, against three
+hand-crafted replies to the same customer email:
+
+- a **good** reply: specific, references the actual order, gives a concrete
+  resolution and timeline, no fabrication
+- a **bad** reply: generic, templated, no specifics, no real resolution
+- a **hallucinated** reply: reads as confident and helpful, but invents an
+  unconfirmed cause (a fabricated warehouse fire)
+
+Run it with:
+```bash
+python evaluation/calibration_check.py
+```
+
+**Results from an actual run:**
+
+```
+<PASTE_CALIBRATION_OUTPUT_HERE>
+```
+
+The script explicitly checks two things: that the good reply scores higher than
+the bad reply (basic discrimination), and that the hallucinated reply's
+groundedness score is flagged low despite being fluent and well-structured
+(catching fabrication specifically, not just general "quality"). Both checks
+passing is what justifies trusting the judge's scores elsewhere in this system —
+without this check, "we use an LLM as judge" is just an assertion.
 
 **The judge rubric has six dimensions**, not five:
 correctness, helpfulness, completeness, professionalism, tone, and

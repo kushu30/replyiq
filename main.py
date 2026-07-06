@@ -11,6 +11,7 @@ from generator.retriever import EmailRetriever
 DATASET_PATH = "dataset/emails.json"
 OUTPUT_PATH = "output/report.csv"
 TOP_K_RETRIEVAL = 3
+CONFIDENCE_THRESHOLD = 0.15
 
 OFFLINE_METRIC_WEIGHTS = {"bleu": 0.15, "rouge_l": 0.15, "bert_score": 0.70}
 
@@ -44,8 +45,13 @@ def run_pipeline(limit: int | None = None) -> None:
         similar_examples = retriever.retrieve_similar(customer_email, top_k=TOP_K_RETRIEVAL)
         domain_precision = retrieval_evaluator.domain_precision(email["domain"], similar_examples)
         retrieval_judgment = retrieval_evaluator.judge_relevance(customer_email, similar_examples)
+        confidence = retrieval_evaluator.confidence_score(similar_examples)
+        low_confidence = confidence < CONFIDENCE_THRESHOLD
 
-        generated_reply = generator.generate_reply(customer_email, similar_examples)
+        if low_confidence:
+            print(f"  ⚠ Low confidence ({confidence}) — no sufficiently similar examples found, falling back to a generic safe reply")
+
+        generated_reply = generator.generate_reply(customer_email, similar_examples, low_confidence=low_confidence)
 
         # PRIMARY EVALUATION: reference-free. This is the score that would run in
         # production, where no historical reply exists to compare against — the
@@ -68,6 +74,8 @@ def run_pipeline(limit: int | None = None) -> None:
                 "retrieval_domain_precision": domain_precision,
                 "retrieval_relevance_score": retrieval_judgment.get("relevance_score", 0),
                 "retrieval_reasoning": retrieval_judgment.get("reasoning", ""),
+                "confidence_score": confidence,
+                "low_confidence_fallback_used": low_confidence,
                 "primary_score": primary_result.score,
                 "judge_reasoning": primary_result.detail,
                 "offline_bleu": offline_result["components"]["bleu"],

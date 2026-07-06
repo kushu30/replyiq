@@ -40,6 +40,23 @@ def test_domain_precision_empty_retrieval():
     assert evaluator.domain_precision("refunds", []) == 0.0
 
 
+def test_confidence_score_averages_similarity():
+    evaluator = RetrievalEvaluator()
+    retrieved = [{"similarity_score": 0.8}, {"similarity_score": 0.6}, {"similarity_score": 0.4}]
+    assert evaluator.confidence_score(retrieved) == 0.6
+
+
+def test_confidence_score_empty_retrieval_is_zero():
+    evaluator = RetrievalEvaluator()
+    assert evaluator.confidence_score([]) == 0.0
+
+
+def test_confidence_score_missing_similarity_key_defaults_to_zero():
+    evaluator = RetrievalEvaluator()
+    retrieved = [{"domain": "refunds"}, {"domain": "billing"}]
+    assert evaluator.confidence_score(retrieved) == 0.0
+
+
 def test_judge_relevance_parses_mocked_response():
     evaluator = RetrievalEvaluator()
     payload = {"relevant_count": 2, "relevance_score": 7, "reasoning": "one example was off-topic"}

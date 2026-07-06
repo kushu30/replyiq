@@ -56,10 +56,14 @@ tone or structure. I wrote realistic examples aiming for real variance — diffe
 customer tones (frustrated, neutral, polite), different reply lengths, and a
 consistent professional-support voice.
 
-**Honest limitation:** 20 examples proves the pipeline and retrieval logic work
-correctly; it does not prove statistical robustness. The architecture is
-unchanged if this were swapped for a real 10,000-row ticket export — only the
-JSON loader would need to point elsewhere.
+**This project evaluates architecture, not statistical learning.** The objective
+is to demonstrate that retrieval, generation, and evaluation work correctly
+together as a system — not to train or validate a model on a large corpus. 20
+examples is sufficient to prove the pipeline is correctly wired end-to-end; it
+is not intended to be, and does not need to be, a statistically representative
+sample. The retriever, generator, and evaluator are all unchanged if
+`dataset/emails.json` were swapped for a real 10,000-row ticket export — only
+the data source changes, which is exactly the point of building it this way.
 
 ## Retrieval Strategy
 
@@ -242,6 +246,7 @@ BERTScore genuinely require a reference and are skipped when none is available.
 
 ### Known limitations
 
+- A full 20-email run showed one striking outlier: email 6 scored retrieval_relevance=0/10 from the lightweight retrieval judge while its final reply quality was unaffected (primary_score=0.7833, in line with the rest of the batch). This is more likely evidence that llama-3.1-8b-instant is noisy at structured relevance judging than a genuine retrieval failure — a real trade-off of using a smaller model to spread API load across separate quotas.
 - The LLM judge and the generator currently use models from the same provider
   (Groq/Llama), which risks shared blind spots. A more rigorous setup would use a
   different model family as judge.
@@ -250,6 +255,67 @@ BERTScore genuinely require a reference and are skipped when none is available.
   step (see Roadmap).
 - BERTScore uses `distilbert-base-uncased` rather than the default
   `roberta-large`, trading some accuracy for a much smaller, faster download.
+
+### Uncertainty: safe responses beat specific ones
+
+A generated reply that confidently states a cause it cannot verify is worse
+than one that honestly admits uncertainty. For example, given "why was my
+payment declined?", a bad reply asserts "it failed because your card expired"
+— specific, confident, and possibly wrong. A good reply says "I don't have
+enough information to determine the exact cause yet, but I'm looking into
+this for you" — less satisfying to read, but honest. The generation prompt
+explicitly instructs this trade-off: prefer an honest, safe admission of
+uncertainty over a specific but fabricated explanation. This is the same
+principle behind the faithfulness dimension in the judge rubric, applied at
+generation time instead of only at evaluation time.
+
+### Confidence scoring and fallback behavior
+
+Every generation is preceded by a retrieval confidence score: the average
+similarity of the top-3 retrieved examples (`RetrievalEvaluator.confidence_score`).
+This is a cheap, deterministic signal — no extra API call — computed directly
+from the TF-IDF cosine similarities the retriever already produces.
+
+When confidence falls below a threshold (`CONFIDENCE_THRESHOLD = 0.15`), the
+system does not proceed with normal few-shot generation, since the retrieved
+"similar" examples aren't actually similar enough to trust as grounding. It
+falls back to a distinct, more conservative prompt path that drops the
+unreliable examples entirely and explicitly instructs the model to write a
+safe, honest, uncertainty-admitting reply rather than inventing specifics from
+weak context. Both the CLI (`main.py`) and the live demo (`app.py`) surface
+this — the demo shows a confidence percentage and a visible warning banner when
+the fallback triggers, rather than silently generating a confident-looking
+reply grounded in nothing.
+
+The threshold value (0.15) is a reasonable starting point for TF-IDF cosine
+similarity on this dataset size, not a rigorously tuned number — it would need
+recalibration against a larger, real dataset where the similarity distribution
+is better understood.
+
+### Future business-outcome metrics
+
+Every metric in this system (BLEU, ROUGE-L, BERTScore, the LLM judge, retrieval
+confidence) is a proxy for reply *quality* — none of them measure business
+*outcome*. Two replies can both score identically well on every quality metric
+here, and still differ enormously in what actually happens next: one resolves
+the customer's issue on the first message, the other reads well but triggers a
+frustrated follow-up email. Quality metrics can't see that difference; only
+downstream behavior can. A production deployment would need to track:
+
+- **First-response resolution rate** — does the customer need to reply again?
+- **Follow-up email volume** — a proxy for the above at scale
+- **Average handle time** — does the suggestion speed up or slow down the agent?
+- **Agent acceptance rate** — do agents send suggestions as-is, or ignore them?
+- **Agent edit distance** — how much do agents change before sending, as a
+  finer-grained signal than binary accept/reject?
+- **Customer satisfaction (CSAT)** — the actual downstream signal all of the
+  above are proxies for
+
+None of these are implemented here — they require production traffic and
+agent/customer behavior data that a pre-deployment evaluation system like this
+one cannot generate. They're listed because knowing this is the real
+scoreboard, and that quality metrics are only a leading indicator for it, is
+part of the evaluation methodology this challenge is asking for.
 
 ## Reporting
 
@@ -361,12 +427,11 @@ streamlit run app.py
 ## Example Output
 
 ```
-[1] refunds -> retrieval_precision=0.6667 retrieval_relevance=8/10 overall_score=0.9469
-[2] refunds -> retrieval_precision=0.6667 retrieval_relevance=8/10 overall_score=0.6497
-[3] billing -> retrieval_precision=0.3333 retrieval_relevance=8/10 overall_score=0.6201
-[4] billing -> retrieval_precision=0.6667 retrieval_relevance=8/10 overall_score=0.5145
-[5] login_issues -> retrieval_precision=0.3333 retrieval_relevance=4/10 overall_score=0.6065
+[1] refunds -> retrieval_relevance=7/10 primary_score=0.8667 (offline_validation=0.9908)
+[2] refunds -> retrieval_relevance=8/10 primary_score=0.85 (offline_validation=0.6516)
+[6] login_issues -> retrieval_relevance=0/10 primary_score=0.7833 (offline_validation=0.8944)
+[20] payment_failures -> retrieval_relevance=8/10 primary_score=0.7833 (offline_validation=0.8738)
 
 Report written to output/report.csv
-Overall system score: 0.6675
+Overall system score (primary, reference-free): 0.8142
 ```

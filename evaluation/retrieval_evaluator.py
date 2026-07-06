@@ -24,6 +24,12 @@ class RetrievalEvaluator:
         matches = sum(1 for example in retrieved_examples if example.get("domain") == query_domain)
         return round(matches / len(retrieved_examples), 4)
 
+    def confidence_score(self, retrieved_examples: list[dict]) -> float:
+        if not retrieved_examples:
+            return 0.0
+        similarities = [example.get("similarity_score", 0.0) for example in retrieved_examples]
+        return round(sum(similarities) / len(similarities), 4)
+
     def _build_relevance_prompt(self, customer_email: str, retrieved_examples: list[dict]) -> str:
         examples_block = "\n\n".join(
             f"Retrieved example {i + 1} (domain: {example['domain']}):\n"

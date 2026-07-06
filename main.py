@@ -1,6 +1,5 @@
 import csv
 import json
-import time
 from pathlib import Path
 
 from evaluation.judge import LlmJudgeMetric
@@ -26,7 +25,7 @@ def load_test_emails(dataset_path: str) -> list[dict]:
         return json.load(file)
 
 
-def run_pipeline() -> None:
+def run_pipeline(limit: int | None = None) -> None:
     retriever = EmailRetriever(DATASET_PATH)
     generator = ReplyGenerator()
     lexical_evaluator = WeightedEvaluator(
@@ -36,7 +35,10 @@ def run_pipeline() -> None:
     judge = LlmJudgeMetric()
     retrieval_evaluator = RetrievalEvaluator()
 
-    test_emails = load_test_emails(DATASET_PATH)[:5]
+    test_emails = load_test_emails(DATASET_PATH)
+    if limit:
+        test_emails = test_emails[:limit]
+
     report_rows = []
     system_scores = []
 
@@ -47,8 +49,8 @@ def run_pipeline() -> None:
         similar_examples = retriever.retrieve_similar(customer_email, top_k=TOP_K_RETRIEVAL)
         domain_precision = retrieval_evaluator.domain_precision(email["domain"], similar_examples)
         retrieval_judgment = retrieval_evaluator.judge_relevance(customer_email, similar_examples)
+
         generated_reply = generator.generate_reply(customer_email, similar_examples)
-        time.sleep(3)
 
         lexical_result = lexical_evaluator.evaluate(generated_reply, reference_reply)
         judge_result = judge.score(generated_reply, reference_reply, customer_email)
@@ -65,14 +67,14 @@ def run_pipeline() -> None:
                 "customer_email": customer_email,
                 "generated_reply": generated_reply,
                 "reference_reply": reference_reply,
+                "retrieval_domain_precision": domain_precision,
+                "retrieval_relevance_score": retrieval_judgment.get("relevance_score", 0),
+                "retrieval_reasoning": retrieval_judgment.get("reasoning", ""),
                 "bleu": lexical_result["components"]["bleu"],
                 "rouge_l": lexical_result["components"]["rouge_l"],
                 "bert_score": lexical_result["components"]["bert_score"],
                 "llm_judge": judge_result.score,
                 "judge_reasoning": judge_result.detail,
-                "retrieval_domain_precision": domain_precision,
-                "retrieval_relevance_score": retrieval_judgment.get("relevance_score", 0),
-                "retrieval_reasoning": retrieval_judgment.get("reasoning", ""),
                 "overall_score": overall_score,
             }
         )
@@ -80,7 +82,8 @@ def run_pipeline() -> None:
 
         print(
             f"[{email['id']}] {email['domain']} -> "
-            f"retrieval_precision={domain_precision} retrieval_relevance={retrieval_judgment.get('relevance_score', 0)}/10 "
+            f"retrieval_precision={domain_precision} "
+            f"retrieval_relevance={retrieval_judgment.get('relevance_score', 0)}/10 "
             f"overall_score={overall_score}"
         )
 

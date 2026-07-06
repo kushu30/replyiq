@@ -5,6 +5,7 @@ from pathlib import Path
 
 from evaluation.judge import LlmJudgeMetric
 from evaluation.metrics import BertScoreMetric, BleuMetric, RougeLMetric, WeightedEvaluator
+from evaluation.retrieval_evaluator import RetrievalEvaluator
 from generator.generator import ReplyGenerator
 from generator.retriever import EmailRetriever
 
@@ -33,8 +34,9 @@ def run_pipeline() -> None:
         weights=METRIC_WEIGHTS,
     )
     judge = LlmJudgeMetric()
+    retrieval_evaluator = RetrievalEvaluator()
 
-    test_emails = load_test_emails(DATASET_PATH)[:8]
+    test_emails = load_test_emails(DATASET_PATH)[:5]
     report_rows = []
     system_scores = []
 
@@ -43,6 +45,8 @@ def run_pipeline() -> None:
         reference_reply = email["support_reply"]
 
         similar_examples = retriever.retrieve_similar(customer_email, top_k=TOP_K_RETRIEVAL)
+        domain_precision = retrieval_evaluator.domain_precision(email["domain"], similar_examples)
+        retrieval_judgment = retrieval_evaluator.judge_relevance(customer_email, similar_examples)
         generated_reply = generator.generate_reply(customer_email, similar_examples)
         time.sleep(3)
 
@@ -66,12 +70,19 @@ def run_pipeline() -> None:
                 "bert_score": lexical_result["components"]["bert_score"],
                 "llm_judge": judge_result.score,
                 "judge_reasoning": judge_result.detail,
+                "retrieval_domain_precision": domain_precision,
+                "retrieval_relevance_score": retrieval_judgment.get("relevance_score", 0),
+                "retrieval_reasoning": retrieval_judgment.get("reasoning", ""),
                 "overall_score": overall_score,
             }
         )
         system_scores.append(overall_score)
 
-        print(f"[{email['id']}] {email['domain']} -> overall_score={overall_score}")
+        print(
+            f"[{email['id']}] {email['domain']} -> "
+            f"retrieval_precision={domain_precision} retrieval_relevance={retrieval_judgment.get('relevance_score', 0)}/10 "
+            f"overall_score={overall_score}"
+        )
 
     write_report(report_rows, system_scores)
 

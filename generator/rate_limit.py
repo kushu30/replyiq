@@ -1,7 +1,7 @@
 import time
 from functools import wraps
 
-from google.api_core.exceptions import ResourceExhausted
+from groq import RateLimitError
 
 
 def retry_with_backoff(max_retries: int = 3, base_delay: int = 15):
@@ -11,7 +11,7 @@ def retry_with_backoff(max_retries: int = 3, base_delay: int = 15):
             for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
-                except ResourceExhausted:
+                except RateLimitError:
                     if attempt == max_retries - 1:
                         raise
                     wait_time = base_delay * (attempt + 1)

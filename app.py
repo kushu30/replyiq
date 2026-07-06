@@ -14,12 +14,12 @@ st.set_page_config(page_title="ReplyIQ", layout="wide")
 @st.cache_resource
 def load_pipeline():
     retriever = EmailRetriever(DATASET_PATH)
-    generator = ReplyGenerator(model_name="gemini-3.5-flash")
+    generator = ReplyGenerator()
     lexical_evaluator = WeightedEvaluator(
         metrics=[BleuMetric(), RougeLMetric(), BertScoreMetric()],
         weights=METRIC_WEIGHTS,
     )
-    judge = LlmJudgeMetric(model_name="gemini-3.5-flash")
+    judge = LlmJudgeMetric()
     return retriever, generator, lexical_evaluator, judge
 
 
@@ -56,22 +56,32 @@ if st.button("Generate suggested reply", type="primary") and customer_email.stri
     st.subheader("Suggested reply")
     st.info(generated_reply)
 
-    if reference_reply.strip():
-        with st.spinner("Scoring reply..."):
+    with st.spinner("Scoring reply..."):
+        judge_result = judge.score(generated_reply, reference_reply, customer_email)
+
+        if reference_reply.strip():
             lexical_result = lexical_evaluator.evaluate(generated_reply, reference_reply)
-            judge_result = judge.score(generated_reply, reference_reply, customer_email)
             overall_score = round(
                 lexical_result["overall_score"] + judge_result.score * METRIC_WEIGHTS["llm_judge"],
                 4,
             )
+        else:
+            lexical_result = None
+            overall_score = judge_result.score
 
-        st.subheader("Evaluation")
+    st.subheader("Evaluation")
+    if lexical_result:
         cols = st.columns(5)
         cols[0].metric("BLEU", lexical_result["components"]["bleu"])
         cols[1].metric("ROUGE-L", lexical_result["components"]["rouge_l"])
         cols[2].metric("BERTScore", lexical_result["components"]["bert_score"])
         cols[3].metric("LLM Judge", judge_result.score)
         cols[4].metric("Overall", overall_score)
+    else:
+        st.caption("No reference reply provided — scored reference-free on rubric alone.")
+        cols = st.columns(2)
+        cols[0].metric("LLM Judge (reference-free)", judge_result.score)
+        cols[1].metric("Overall", overall_score)
 
-        with st.expander("Judge reasoning"):
-            st.json(judge_result.detail)
+    with st.expander("Judge reasoning"):
+        st.json(judge_result.detail)

@@ -131,6 +131,7 @@ score across all evaluated emails.
   to `gemini-2.5-flash-lite` for a separate quota bucket and added retry-with-backoff
   handling for rate limits. The pipeline itself is unchanged and scales to the full
   dataset — this is purely an API quota constraint, not an architecture limitation.
+  To further mitigate rate limits, the system deliberately spreads its calls across two separate Groq model quotas by defaulting to `llama-3.1-8b-instant` for retrieval evaluation and `llama-3.3-70b-versatile` for generation and judging.
 - No fine-tuning: few-shot retrieval-grounded prompting was the faster, more
   transparent choice for this timeframe, and doesn't require training
   infrastructure or risk overfitting to 20 examples.

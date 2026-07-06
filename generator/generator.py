@@ -1,7 +1,7 @@
 import os
 
-import google.generativeai as genai
 from dotenv import load_dotenv
+from groq import Groq
 
 from generator.rate_limit import retry_with_backoff
 
@@ -9,12 +9,12 @@ load_dotenv()
 
 
 class ReplyGenerator:
-    def __init__(self, model_name: str = "gemini-2.5-flash-lite") -> None:
-        api_key = os.getenv("GEMINI_API_KEY")
+    def __init__(self, model_name: str = "llama-3.3-70b-versatile") -> None:
+        api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
-            raise EnvironmentError("GEMINI_API_KEY not found in environment")
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(model_name)
+            raise EnvironmentError("GROQ_API_KEY not found in environment")
+        self.client = Groq(api_key=api_key)
+        self.model_name = model_name
 
     def _build_prompt(self, customer_email: str, similar_examples: list[dict]) -> str:
         examples_block = "\n\n".join(
@@ -40,5 +40,8 @@ Do not invent specific facts that are not stated in the customer's email or the 
     @retry_with_backoff()
     def generate_reply(self, customer_email: str, similar_examples: list[dict]) -> str:
         prompt = self._build_prompt(customer_email, similar_examples)
-        response = self.model.generate_content(prompt)
-        return response.text.strip()
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content.strip()

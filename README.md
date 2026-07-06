@@ -34,7 +34,7 @@ Evaluation Engine  <----------------------------------
   |-- BLEU        (lexical n-gram overlap)
   |-- ROUGE-L     (longest common subsequence overlap)
   |-- BERTScore    (semantic embedding similarity)
-  |-- LLM Judge   (6-dimension rubric incl. groundedness)
+  |-- LLM Judge   (6-dimension rubric incl. faithfulness)
       |
       v
 Weighted Overall Score --> output/report.csv (per-email + system average)
@@ -138,6 +138,26 @@ close to how the team has actually replied before — but they are never part of
 the headline `primary_score`, and could not be computed at all on a genuinely
 new email in production.
 
+### Offline validation weighting — why these numbers, not invented ones
+
+The offline validation blend combines BLEU, ROUGE-L, and BERTScore with a
+justified structure rather than arbitrary numbers:
+
+- **BLEU measures lexical similarity** — lowest importance, since a correctly
+  paraphrased reply can score low here despite being excellent.
+- **ROUGE-L captures structural overlap** — still lexical, still low importance
+  for the same reason.
+- **BERTScore captures semantic equivalence** — higher importance, because it
+  tolerates paraphrasing while still penalizing replies that are actually wrong.
+
+Grouped this way, BLEU and ROUGE-L together form a **30% lexical** weight, and
+BERTScore alone forms a **70% semantic** weight. The reasoning is direct:
+support replies should be judged primarily on whether they convey the right
+meaning, not on whether they use the same words as a historical reply. This
+30/70 split applies only to offline validation — it never touches the primary,
+reference-free score, which has no weights to justify because it's a single
+signal (the judge), not a blend.
+
 ### Judge calibration — proving discrimination, not just claiming it
 
 An LLM-as-judge is only trustworthy if it can be shown to actually discriminate
@@ -165,19 +185,32 @@ python evaluation/calibration_check.py
 
 The script explicitly checks two things: that the good reply scores higher than
 the bad reply (basic discrimination), and that the hallucinated reply's
-groundedness score is flagged low despite being fluent and well-structured
+faithfulness score is flagged low despite being fluent and well-structured
 (catching fabrication specifically, not just general "quality"). Both checks
 passing is what justifies trusting the judge's scores elsewhere in this system —
 without this check, "we use an LLM as judge" is just an assertion.
 
 **The judge rubric has six dimensions**, not five:
 correctness, helpfulness, completeness, professionalism, tone, and
-**groundedness** — whether the reply avoids inventing facts not present in the
-customer's email. Groundedness was added directly in response to the
-hallucination described above; a reply that confidently states an unverified
-cause must score low here (0-3) even if it reads as polished and empathetic.
-Splitting "sounds good" from "is factually true" into separate dimensions is
-deliberate — a single quality score would hide exactly this kind of failure.
+**faithfulness to customer-provided information** — whether every claim in the
+reply is actually grounded in what the customer said, as opposed to being
+merely plausible-sounding. This is deliberately named "faithfulness" rather
+than the more common "groundedness," because the relevant source of truth here
+is specifically what the customer told us, not external world knowledge.
+
+The distinction matters because faithfulness failures don't look like failures
+on any other dimension. Consider: a customer writes only "my package is late."
+A reply says "your package was delayed because the warehouse closed." That
+reply is helpful (yes), correct (unknown — the cause was never confirmed),
+well-toned (excellent), and yet not grounded in anything the customer actually
+said. A rubric without a dedicated faithfulness dimension would likely score
+that reply highly across the board, because everything about it *reads* well.
+We separately evaluate faithfulness to customer-provided information for
+exactly this reason — a reply that invents a specific unconfirmed cause must
+score low on faithfulness (0-3) regardless of how good it looks on every other
+axis. Splitting "sounds good" from "is actually grounded" into separate
+dimensions is deliberate — a single quality score would hide exactly this kind
+of failure.
 
 ### Validating the judge isn't just agreeable
 
@@ -194,7 +227,7 @@ schema requires a `weakness` field naming the single most significant flaw in
 every reply — the judge cannot skip identifying a problem.
 
 **Effect of these fixes on the score:** the system's overall average dropped from
-an earlier ~0.90 to ~0.67 after fixing judge leniency and adding groundedness.
+an earlier ~0.90 to ~0.67 after fixing judge leniency and adding faithfulness.
 This is a improvement in scoring honesty, not a regression in system quality —
 a lower, more discriminating score is more trustworthy than an inflated one.
 
@@ -203,7 +236,7 @@ a lower, more discriminating score is more trustworthy than an inflated one.
 Historical emails have a ground-truth reply to compare against; a brand-new
 incoming email in production does not. The judge was updated to work without a
 reference reply — the correctness/helpfulness/completeness/professionalism/
-tone/groundedness rubric can be assessed directly against the customer email and
+tone/faithfulness rubric can be assessed directly against the customer email and
 general support standards, with no comparison needed. Only BLEU/ROUGE-L/
 BERTScore genuinely require a reference and are skipped when none is available.
 

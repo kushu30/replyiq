@@ -12,7 +12,7 @@ DATASET_PATH = "dataset/emails.json"
 OUTPUT_PATH = "output/report.csv"
 TOP_K_RETRIEVAL = 3
 
-OFFLINE_METRIC_WEIGHTS = {"bleu": 0.3, "rouge_l": 0.3, "bert_score": 0.4}
+OFFLINE_METRIC_WEIGHTS = {"bleu": 0.15, "rouge_l": 0.15, "bert_score": 0.70}
 
 
 def load_test_emails(dataset_path: str) -> list[dict]:

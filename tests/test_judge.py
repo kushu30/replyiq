@@ -21,10 +21,10 @@ def _fake_groq_response(payload: dict):
 
 def test_parse_response_handles_valid_json():
     judge = LlmJudgeMetric()
-    payload = {"correctness": 8, "helpfulness": 7, "completeness": 8, "professionalism": 9, "tone": 9, "groundedness": 6, "reasoning": "solid reply"}
+    payload = {"correctness": 8, "helpfulness": 7, "completeness": 8, "professionalism": 9, "tone": 9, "faithfulness": 6, "reasoning": "solid reply"}
     parsed = judge._parse_response(json.dumps(payload))
     assert parsed["correctness"] == 8
-    assert parsed["groundedness"] == 6
+    assert parsed["faithfulness"] == 6
 
 
 def test_parse_response_handles_malformed_json_gracefully():
@@ -36,26 +36,48 @@ def test_parse_response_handles_malformed_json_gracefully():
 
 def test_parse_response_strips_markdown_fences():
     judge = LlmJudgeMetric()
-    payload = {"correctness": 10, "helpfulness": 10, "completeness": 10, "professionalism": 10, "tone": 10, "groundedness": 10, "reasoning": "great"}
+    payload = {"correctness": 10, "helpfulness": 10, "completeness": 10, "professionalism": 10, "tone": 10, "faithfulness": 10, "reasoning": "great"}
     wrapped = f"```json\n{json.dumps(payload)}\n```"
     parsed = judge._parse_response(wrapped)
     assert parsed["correctness"] == 10
 
 
-def test_score_averages_criteria_correctly():
+def test_score_averages_criteria_correctly_when_faithfulness_is_acceptable():
     judge = LlmJudgeMetric()
-    payload = {"correctness": 10, "helpfulness": 10, "completeness": 10, "professionalism": 10, "tone": 10, "groundedness": 0, "reasoning": "mixed"}
+    payload = {"correctness": 10, "helpfulness": 10, "completeness": 10, "professionalism": 10, "tone": 10, "faithfulness": 8, "reasoning": "mostly strong"}
 
     with patch.object(judge.client.chat.completions, "create", return_value=_fake_groq_response(payload)):
         result = judge.score(generated="test reply", reference="test reference", customer_email="test email")
 
-    expected_average = (10 + 10 + 10 + 10 + 10 + 0) / 6 / 10
+    expected_average = (10 + 10 + 10 + 10 + 10 + 8) / 6 / 10
+    assert result.score == round(expected_average, 4)
+
+
+def test_score_gates_overall_when_faithfulness_is_low():
+    judge = LlmJudgeMetric()
+    payload = {"correctness": 10, "helpfulness": 10, "completeness": 10, "professionalism": 10, "tone": 10, "faithfulness": 2, "reasoning": "fabricated cause"}
+
+    with patch.object(judge.client.chat.completions, "create", return_value=_fake_groq_response(payload)):
+        result = judge.score(generated="test reply", reference="test reference", customer_email="test email")
+
+    # Plain average would be (10*5+2)/6/10 = 0.8667 — the gate must cap it well below that
+    assert result.score == 0.4
+
+
+def test_score_gate_does_not_trigger_at_boundary():
+    judge = LlmJudgeMetric()
+    payload = {"correctness": 5, "helpfulness": 5, "completeness": 5, "professionalism": 5, "tone": 5, "faithfulness": 4, "reasoning": "borderline"}
+
+    with patch.object(judge.client.chat.completions, "create", return_value=_fake_groq_response(payload)):
+        result = judge.score(generated="test reply", reference="test reference", customer_email="test email")
+
+    expected_average = (5 + 5 + 5 + 5 + 5 + 4) / 6 / 10
     assert result.score == round(expected_average, 4)
 
 
 def test_score_works_without_reference():
     judge = LlmJudgeMetric()
-    payload = {"correctness": 7, "helpfulness": 7, "completeness": 7, "professionalism": 7, "tone": 7, "groundedness": 7, "reasoning": "ok"}
+    payload = {"correctness": 7, "helpfulness": 7, "completeness": 7, "professionalism": 7, "tone": 7, "faithfulness": 7, "reasoning": "ok"}
 
     with patch.object(judge.client.chat.completions, "create", return_value=_fake_groq_response(payload)):
         result = judge.score(generated="test reply", customer_email="test email")

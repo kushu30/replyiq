@@ -10,7 +10,7 @@ from generator.rate_limit import retry_with_backoff
 
 load_dotenv()
 
-JUDGE_CRITERIA = ["correctness", "helpfulness", "completeness", "professionalism", "tone", "groundedness"]
+JUDGE_CRITERIA = ["correctness", "helpfulness", "completeness", "professionalism", "tone", "faithfulness"]
 
 
 class LlmJudgeMetric(EvaluationMetric):
@@ -50,14 +50,17 @@ structured.
 - completeness: does it cover everything the customer asked about
 - professionalism: is the language appropriate for customer support
 - tone: is it empathetic and suitably toned for the situation
-- groundedness: does it avoid inventing specific facts not present in the customer's
-  email (fabricated causes, invented order details, unconfirmed timelines)? A reply
-  that confidently states an unverified cause (e.g. claiming a package was
-  "misrouted" when the customer never said so and nothing confirms it) must score
-  low here (0-3), even if it sounds helpful and well-written.
+- faithfulness: is every claim in the reply faithful to what the customer actually
+  said, with no invented causes, order details, or unconfirmed timelines? This is
+  independent of helpfulness and tone — a reply can be helpful, confident, and
+  perfectly toned while still being unfaithful (e.g. a customer says only "my
+  package is late" and the reply asserts "it was delayed because the warehouse
+  closed" — that specific cause was never stated by the customer and is not
+  confirmed anywhere; score faithfulness low here, 0-3, even though the reply
+  reads as excellent on every other dimension).
 
 Respond with ONLY valid JSON in this exact format, no markdown, no explanation:
-{{"correctness": <int>, "helpfulness": <int>, "completeness": <int>, "professionalism": <int>, "tone": <int>, "groundedness": <int>, "weakness": "<the single most significant flaw in this reply, be specific>", "reasoning": "<one sentence summary>"}}"""
+{{"correctness": <int>, "helpfulness": <int>, "completeness": <int>, "professionalism": <int>, "tone": <int>, "faithfulness": <int>, "weakness": "<the single most significant flaw in this reply, be specific>", "reasoning": "<one sentence summary>"}}"""
 
     def _parse_response(self, raw_text: str) -> dict:
         cleaned = re.sub(r"```json|```", "", raw_text).strip()
@@ -79,6 +82,15 @@ Respond with ONLY valid JSON in this exact format, no markdown, no explanation:
 
         criterion_scores = [parsed.get(criterion, 0) for criterion in JUDGE_CRITERIA]
         average_score = sum(criterion_scores) / len(criterion_scores) / 10
+
+        # A plain average lets a single catastrophic faithfulness failure get
+        # diluted by five otherwise-decent scores — a confidently fabricated
+        # claim with good tone could still out-rank a merely generic, honest
+        # reply. Fabrication is a severity issue, not a quality ding, so it
+        # gates the score rather than just averaging into it.
+        faithfulness_score = parsed.get("faithfulness", 10)
+        if isinstance(faithfulness_score, (int, float)) and faithfulness_score <= 3:
+            average_score = min(average_score, 0.4)
 
         detail = json.dumps(parsed)
         return MetricResult(name="llm_judge", score=round(average_score, 4), detail=detail)

@@ -6,6 +6,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 from evaluation.metrics import EvaluationMetric, MetricResult
+from generator.rate_limit import retry_with_backoff
 
 load_dotenv()
 
@@ -13,7 +14,7 @@ JUDGE_CRITERIA = ["correctness", "helpfulness", "completeness", "professionalism
 
 
 class LlmJudgeMetric(EvaluationMetric):
-    def __init__(self, model_name: str = "gemini-1.5-flash") -> None:
+    def __init__(self, model_name: str = "gemini-2.5-flash-lite") -> None:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise EnvironmentError("GEMINI_API_KEY not found in environment")
@@ -51,6 +52,7 @@ Respond with ONLY valid JSON in this exact format, no markdown, no explanation:
                 "reasoning": "Failed to parse judge response"
             }
 
+    @retry_with_backoff()
     def score(self, generated: str, reference: str, customer_email: str = "") -> MetricResult:
         prompt = self._build_prompt(customer_email, generated, reference)
         response = self.model.generate_content(prompt)

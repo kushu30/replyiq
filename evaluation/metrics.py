@@ -44,7 +44,7 @@ class BertScoreMetric(EvaluationMetric):
         from bert_score import score as bert_score_fn
 
         _, _, f1 = bert_score_fn(
-            [generated], [reference], lang="en", verbose=False
+            [generated], [reference], lang="en", model_type="distilbert-base-uncased", verbose=False
         )
         value = f1.item()
         return MetricResult(name="bert_score", score=round(value, 4))

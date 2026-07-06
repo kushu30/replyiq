@@ -3,11 +3,13 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 
+from generator.rate_limit import retry_with_backoff
+
 load_dotenv()
 
 
 class ReplyGenerator:
-    def __init__(self, model_name: str = "gemini-1.5-flash") -> None:
+    def __init__(self, model_name: str = "gemini-2.5-flash-lite") -> None:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise EnvironmentError("GEMINI_API_KEY not found in environment")
@@ -33,6 +35,7 @@ New customer email:
 
 Write a professional, concise, and empathetic support reply. Only output the reply text, with no preamble, no subject line, and no explanation."""
 
+    @retry_with_backoff()
     def generate_reply(self, customer_email: str, similar_examples: list[dict]) -> str:
         prompt = self._build_prompt(customer_email, similar_examples)
         response = self.model.generate_content(prompt)
